@@ -1,0 +1,109 @@
+-- Load OrionLib
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+
+-- Create the main window
+local Window = OrionLib:MakeWindow({
+    Name = "Waffle Script Box",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "OrionTest"
+})
+
+-- Show a welcome notification
+OrionLib:MakeNotification({
+    Name = "Welcome!",
+    Content = "Thanks for using my script!",
+    Image = "rbxassetid://4483345998",
+    Time = 5
+})
+
+-- Create a Teleport tab
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Helper function to get player by name
+local function getPlayerByName(playerName)
+    return game.Players:FindFirstChild(playerName)
+end
+
+-- Bring player to me
+TeleportTab:AddTextbox({
+    Name = "Player Name to Bring",
+    Default = "PlayerName",
+    TextDisappear = false,
+    Callback = function(playerName)
+        local player = getPlayerByName(playerName)
+        local localPlayer = game.Players.LocalPlayer
+
+        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local originalPosition = player.Character.HumanoidRootPart.Position
+                local localCFrame = localPlayer.Character.HumanoidRootPart.CFrame
+
+                -- Move player to local player
+                player.Character.HumanoidRootPart.CFrame = localCFrame
+
+                -- Prevent player from returning to original position
+                local function preventReturn()
+                    while player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
+                        local currentPosition = player.Character.HumanoidRootPart.Position
+                        local distanceFromLocal = (currentPosition - localPlayer.Character.HumanoidRootPart.Position).magnitude
+
+                        -- Stop preventing if player moves too far from local player
+                        if distanceFromLocal > 100 then
+                            print("Player moved too far from you. Stopping return prevention.")
+                            break
+                        end
+
+                        -- If player is close to the original position, continue moving them
+                        if (currentPosition - originalPosition).magnitude < 5 then
+                            player.Character.HumanoidRootPart.CFrame = localCFrame
+                        end
+
+                        wait(0.1)
+                    end
+                    print("Player is no longer being monitored for position.")
+                end
+
+                spawn(preventReturn)
+                print("Brought " .. playerName .. " to you and they cannot return to their old position")
+            else
+                print("Local player character or HumanoidRootPart not found")
+            end
+        else
+            print("Target player not found or has no character")
+        end
+    end
+})
+
+-- Teleport one player to another
+TeleportTab:AddTextbox({
+    Name = "Source Player Name",
+    Default = "SourcePlayerName",
+    TextDisappear = false,
+    Callback = function(sourcePlayerName)
+        local sourcePlayer = getPlayerByName(sourcePlayerName)
+        if sourcePlayer and sourcePlayer.Character and sourcePlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local sourceCFrame = sourcePlayer.Character.HumanoidRootPart.CFrame
+            TeleportTab:AddTextbox({
+                Name = "Destination Player Name",
+                Default = "DestinationPlayerName",
+                TextDisappear = false,
+                Callback = function(destinationPlayerName)
+                    local destinationPlayer = getPlayerByName(destinationPlayerName)
+                    if destinationPlayer and destinationPlayer.Character and destinationPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        destinationPlayer.Character.HumanoidRootPart.CFrame = sourceCFrame
+                        print("Teleported " .. destinationPlayerName .. " to " .. sourcePlayerName)
+                    else
+                        print("Destination player not found or has no character")
+                    end
+                end
+            })
+        else
+            print("Source player not found or has no character")
+        end
+    end
+})
